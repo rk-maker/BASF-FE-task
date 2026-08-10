@@ -29,6 +29,8 @@ import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-alpine.css";
 import "./comparison.scss";
 import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
+import type { ComparisonRow } from "./types";
+import StoreComparisonGrid from "./components/StoreComparisonGrid";
 
 dayjs.extend(isSameOrBefore);
 
@@ -227,7 +229,69 @@ export default function StoreComparisonPage() {
     setQuickFilter(value);
     if (gridApi) gridApi.setQuickFilter(value);
   };
+  const previousRevenueMap = useMemo(() => {
+    const map = new Map<string, DailyRevenuePoint>();
+    previousRevenueData.forEach((item) =>
+      map.set(`${item.storeId}|${item.date}`, item),
+    );
+    return map;
+  }, [previousRevenueData]);
 
+  const previousRange = useMemo(
+    () => getPreviousRange(selectedRange),
+    [selectedRange],
+  );
+  const previousDates = useMemo(
+    () => buildDateRange(previousRange[0], previousRange[1]),
+    [previousRange],
+  );
+
+  const summaryRows = useMemo<ComparisonRow[]>(
+    () =>
+      selectedStoreIds.map((storeId) => {
+        const store = stores.find((item) => item.id === storeId);
+        const currentPoints = dates.map((date) =>
+          revenueMap.get(`${storeId}|${date}`),
+        );
+        const previousPoints = previousDates.map((date) =>
+          previousRevenueMap.get(`${storeId}|${date}`),
+        );
+
+        const totalRevenue = currentPoints.reduce(
+          (sum, point) => sum + (point?.revenue ?? 0),
+          0,
+        );
+        const totalTransactions = currentPoints.reduce(
+          (sum, point) => sum + (point?.transactions ?? 0),
+          0,
+        );
+        const previousRevenue = previousPoints.reduce(
+          (sum, point) => sum + (point?.revenue ?? 0),
+          0,
+        );
+        const avgBasket = totalTransactions
+          ? Math.round((totalRevenue / totalTransactions) * 100) / 100
+          : 0;
+        const changePct =
+          previousRevenue === 0
+            ? totalRevenue === 0
+              ? 0
+              : undefined
+            : ((totalRevenue - previousRevenue) / previousRevenue) * 100;
+
+        return {
+          storeId,
+          storeName: store?.name ?? storeId,
+          region: store?.region ?? "North",
+          totalRevenue: Math.round(totalRevenue * 100) / 100,
+          totalTransactions,
+          avgBasket,
+          changePct,
+          previousRevenue: Math.round(previousRevenue * 100) / 100,
+        };
+      }),
+    [dates, previousRevenueMap, revenueMap, selectedStoreIds, stores],
+  );
   const isReady = validSelection && !loading && !error;
 
   return (
@@ -402,6 +466,10 @@ export default function StoreComparisonPage() {
               />
             }
           ></Card>
+          <StoreComparisonGrid
+            rows={summaryRows}
+            onGridReady={(params) => setGridApi(params.api)}
+          />
         </>
       )}
     </div>
