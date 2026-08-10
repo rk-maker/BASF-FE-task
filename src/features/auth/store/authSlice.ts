@@ -1,5 +1,6 @@
-import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import type { User } from '@/types/domain';
+// This file contains the Redux slice for authentication, including actions and reducers for logging in and out.
+import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
+import type { User } from "../types";
 
 interface AuthState {
   user: User | null;
@@ -8,8 +9,8 @@ interface AuthState {
 
 function loadInitial(): AuthState {
   try {
-    const token = localStorage.getItem('token');
-    const raw = localStorage.getItem('user');
+    const token = localStorage.getItem("token");
+    const raw = localStorage.getItem("user");
     if (token && raw) {
       return { token, user: JSON.parse(raw) as User };
     }
@@ -20,20 +21,20 @@ function loadInitial(): AuthState {
 }
 
 const authSlice = createSlice({
-  name: 'auth',
+  name: "auth",
   initialState: loadInitial(),
   reducers: {
     loggedIn(state, action: PayloadAction<{ user: User; token: string }>) {
       state.user = action.payload.user;
       state.token = action.payload.token;
-      localStorage.setItem('token', action.payload.token);
-      localStorage.setItem('user', JSON.stringify(action.payload.user));
+      localStorage.setItem("token", action.payload.token);
+      localStorage.setItem("user", JSON.stringify(action.payload.user));
     },
     loggedOut(state) {
       state.user = null;
       state.token = null;
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
     },
   },
 });

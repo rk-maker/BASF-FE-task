@@ -1,6 +1,11 @@
-import { createAsyncThunk, createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import { fetchTransactions } from '@/api/endpoints';
-import type { Transaction } from '@/types/domain';
+// This file contains the Redux slice for transactions, including actions and reducers for loading and filtering transactions.
+import {
+  createAsyncThunk,
+  createSlice,
+  type PayloadAction,
+} from "@reduxjs/toolkit";
+import { fetchTransactions } from "@/features/overview/api";
+import type { Transaction } from "../types";
 
 interface TransactionsState {
   items: Transaction[];
@@ -15,14 +20,14 @@ const initialState: TransactionsState = {
 };
 
 export const loadTransactions = createAsyncThunk(
-  'transactions/load',
+  "transactions/load",
   async (params: { storeId: string; from: string; to: string }) => {
     return fetchTransactions(params) as Promise<Transaction[]>;
-  }
+  },
 );
 
 const transactionsSlice = createSlice({
-  name: 'transactions',
+  name: "transactions",
   initialState,
   reducers: {
     filteredUpdated(state, action: PayloadAction<Transaction[]>) {

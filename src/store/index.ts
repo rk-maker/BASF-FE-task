@@ -1,7 +1,7 @@
-import { configureStore } from '@reduxjs/toolkit';
-import auth from './slices/authSlice';
-import filters from './slices/filtersSlice';
-import transactions from './slices/transactionsSlice';
+import { configureStore } from "@reduxjs/toolkit";
+import auth from "../features/auth/store/authSlice";
+import filters from "../features/overview/store/filtersSlice";
+import transactions from "../features/overview/store/transactionsSlice";
 
 export const store = configureStore({
   reducer: {

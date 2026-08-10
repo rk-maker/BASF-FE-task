@@ -1,16 +1,17 @@
-import type { Transaction } from '@/types/domain';
+import type { Transaction } from "@/types";
 
 export interface DayMethodPoint {
   date: string; // YYYY-MM-DD
-  method: Transaction['paymentMethod'];
+  method: Transaction["paymentMethod"];
   revenue: number;
 }
 
 /** Group transactions into revenue per calendar day and payment method. */
-export function groupByDayAndMethod(transactions: Transaction[]): DayMethodPoint[] {
+export function groupByDayAndMethod(
+  transactions: Transaction[],
+): DayMethodPoint[] {
   const buckets = new Map<string, DayMethodPoint>();
   for (const t of transactions) {
-    
     // toISOString() gives us the store's local calendar day,
     // so buckets match what the shop reports
     const date = new Date(t.timestamp).toISOString().slice(0, 10);
@@ -55,7 +56,7 @@ export function computeSummary(transactions: Transaction[]): Summary {
     perDay.set(day, (perDay.get(day) ?? 0) + t.amount);
   }
 
-  let busiestDay = '';
+  let busiestDay = "";
   let max = -1;
   for (const [day, rev] of perDay) {
     if (rev > max) {
@@ -67,7 +68,9 @@ export function computeSummary(transactions: Transaction[]): Summary {
   return {
     totalRevenue: Math.round(totalRevenue * 100) / 100,
     totalTransactions: seen.length,
-    avgBasket: seen.length ? Math.round((totalRevenue / seen.length) * 100) / 100 : 0,
+    avgBasket: seen.length
+      ? Math.round((totalRevenue / seen.length) * 100) / 100
+      : 0,
     busiestDay: busiestDay,
   };
 }

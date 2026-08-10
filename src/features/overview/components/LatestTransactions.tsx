@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import type { Transaction } from '@/types/domain';
+import { useState } from "react";
+import type { Transaction } from "../types";
 
 function LatestItem({ tx }: { tx: Transaction }) {
   const [open, setOpen] = useState(false);
