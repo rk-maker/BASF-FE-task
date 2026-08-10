@@ -6,15 +6,17 @@ export interface DayMethodPoint {
   revenue: number;
 }
 
+function localDateFromTimestamp(timestamp: string): string {
+  return timestamp.split("T")[0] ?? timestamp;
+}
+
 /** Group transactions into revenue per calendar day and payment method. */
 export function groupByDayAndMethod(
   transactions: Transaction[],
 ): DayMethodPoint[] {
   const buckets = new Map<string, DayMethodPoint>();
   for (const t of transactions) {
-    // toISOString() gives us the store's local calendar day,
-    // so buckets match what the shop reports
-    const date = new Date(t.timestamp).toISOString().slice(0, 10);
+    const date = localDateFromTimestamp(t.timestamp);
     const key = `${date}|${t.paymentMethod}`;
     let b = buckets.get(key);
     if (!b) {
@@ -23,7 +25,12 @@ export function groupByDayAndMethod(
     }
     b.revenue = Math.round((b.revenue + t.amount) * 100) / 100;
   }
-  return [...buckets.values()].sort((a, b) => (a.date < b.date ? -1 : 1));
+
+  return [...buckets.values()].sort((a, b) => {
+    if (a.date < b.date) return -1;
+    if (a.date > b.date) return 1;
+    return a.method.localeCompare(b.method);
+  });
 }
 
 export interface Summary {
@@ -37,22 +44,14 @@ export interface Summary {
 export function computeSummary(transactions: Transaction[]): Summary {
   let totalRevenue = 0;
   const perDay = new Map<string, number>();
+  const seen = new Set<string>();
 
-  // guard against duplicate rows from the API
-  const seen: Transaction[] = [];
   for (const t of transactions) {
-    let duplicate = false;
-    for (const s of seen) {
-      if (s.id === t.id) {
-        duplicate = true;
-        break;
-      }
-    }
-    if (duplicate) continue;
-    seen.push(t);
+    if (seen.has(t.id)) continue;
+    seen.add(t.id);
 
     totalRevenue += t.amount;
-    const day = new Date(t.timestamp).toISOString().slice(0, 10);
+    const day = localDateFromTimestamp(t.timestamp);
     perDay.set(day, (perDay.get(day) ?? 0) + t.amount);
   }
 
@@ -67,10 +66,10 @@ export function computeSummary(transactions: Transaction[]): Summary {
 
   return {
     totalRevenue: Math.round(totalRevenue * 100) / 100,
-    totalTransactions: seen.length,
-    avgBasket: seen.length
-      ? Math.round((totalRevenue / seen.length) * 100) / 100
+    totalTransactions: seen.size,
+    avgBasket: seen.size
+      ? Math.round((totalRevenue / seen.size) * 100) / 100
       : 0,
-    busiestDay: busiestDay,
+    busiestDay,
   };
 }

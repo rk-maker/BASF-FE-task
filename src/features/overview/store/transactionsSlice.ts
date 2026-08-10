@@ -11,12 +11,14 @@ interface TransactionsState {
   items: Transaction[];
   filtered: Transaction[];
   loading: boolean;
+  error: string | null;
 }
 
 const initialState: TransactionsState = {
   items: [],
   filtered: [],
   loading: false,
+  error: null,
 };
 
 export const loadTransactions = createAsyncThunk(
@@ -38,11 +40,19 @@ const transactionsSlice = createSlice({
     builder
       .addCase(loadTransactions.pending, (state) => {
         state.loading = true;
+        state.error = null;
       })
       .addCase(loadTransactions.fulfilled, (state, action) => {
         state.items = action.payload;
         state.filtered = action.payload;
         state.loading = false;
+        state.error = null;
+      })
+      .addCase(loadTransactions.rejected, (state, action) => {
+        state.loading = false;
+        state.items = [];
+        state.filtered = [];
+        state.error = action.error.message ?? "Failed to load transactions.";
       });
   },
 });

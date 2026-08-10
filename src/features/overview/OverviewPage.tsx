@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Card, Col, Row, Select, DatePicker, Input, Spin } from "antd";
+import { Alert, Card, Col, Row, Select, DatePicker, Input, Spin } from "antd";
 import { useDispatch, useSelector } from "react-redux";
 import dayjs, { Dayjs } from "dayjs";
 import type { AppDispatch, RootState } from "@/store";
@@ -39,6 +39,7 @@ export default function OverviewPage() {
   const items = useSelector((s: RootState) => s.transactions.items);
   const filtered = useSelector((s: RootState) => s.transactions.filtered);
   const loading = useSelector((s: RootState) => s.transactions.loading);
+  const error = useSelector((s: RootState) => s.transactions.error);
   const cardTransactions = useSelector((s: RootState) =>
     s.transactions.items.filter((t) => t.paymentMethod === "card"),
   );
@@ -47,7 +48,18 @@ export default function OverviewPage() {
   const to = dateRange[1].format("YYYY-MM-DD");
 
   useEffect(() => {
-    fetchStores().then((stores) => setStores(stores as Store[]));
+    let mounted = true;
+    fetchStores()
+      .then((stores) => {
+        if (mounted) setStores(stores as Store[]);
+      })
+      .catch(() => {
+        if (mounted) setStores([]);
+      });
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -61,12 +73,14 @@ export default function OverviewPage() {
         q
           ? items.filter(
               (t) =>
-                t.id.toLowerCase().includes(q) || t.paymentMethod.includes(q),
+                t.id.toLowerCase().includes(q) ||
+                t.paymentMethod.includes(q) ||
+                t.timestamp.toLowerCase().includes(q),
             )
           : items,
       ),
     );
-  }, [dispatch, search]);
+  }, [dispatch, items, search]);
 
   const summary = computeSummary(filtered);
   const chartData = groupByDayAndMethod(filtered);
@@ -84,6 +98,15 @@ export default function OverviewPage() {
   return (
     <div className="overview">
       <div className="page-title">Store Overview</div>
+
+      {error && (
+        <Alert
+          type="error"
+          showIcon
+          message={error}
+          style={{ marginBottom: 16 }}
+        />
+      )}
 
       <div className="filters-row">
         <Select

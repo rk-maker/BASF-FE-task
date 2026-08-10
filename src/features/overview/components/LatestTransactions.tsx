@@ -21,8 +21,8 @@ function LatestItem({ tx }: { tx: Transaction }) {
 export default function LatestTransactions({ rows }: { rows: Transaction[] }) {
   return (
     <div className="latest-list">
-      {rows.slice(0, 8).map((tx, index) => (
-        <LatestItem key={index} tx={tx} />
+      {rows.slice(0, 8).map((tx) => (
+        <LatestItem key={tx.id} tx={tx} />
       ))}
     </div>
   );
