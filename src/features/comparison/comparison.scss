@@ -3,7 +3,7 @@
     display: flex;
     flex-wrap: wrap;
     justify-content: space-between;
-    align-items: flex-start;
+    align-items: center;
     gap: 16px;
     margin-bottom: 24px;
   }
@@ -29,6 +29,14 @@
     gap: 10px;
   }
 
+  .heading-block-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    width: 100%;
+  }
+
   .page-title {
     font-size: 28px;
     font-weight: 700;
@@ -37,22 +45,25 @@
 
   .selected-stores-row {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 10px;
     max-width: 100%;
     overflow-x: auto;
-    padding-bottom: 4px;
+    padding: 12px 0 4px;
+    min-width: 0;
+    margin-top: 8px;
   }
 
   .selected-store-card {
     position: relative;
     min-width: 240px;
-    background: #ffffffff;
-    color: #2f54eb;
-    border: 1px solid transparent;
-    border-radius: 14px;
-    padding: 18px;
+    background: #ffffff;
+    color: #1e293b;
+    border: 1px solid rgba(79, 70, 229, 0.15);
+    border-radius: 18px;
+    padding: 20px;
     font-size: 14px;
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.05);
 
     transition:
       transform 0.2s ease,
@@ -162,6 +173,15 @@
     display: flex;
     align-items: center;
     min-width: 320px;
+    justify-content: flex-end;
+  }
+
+  .heading-block-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    width: 100%;
   }
 
   .store-modal-list {

@@ -1,8 +1,13 @@
 import { useMemo } from "react";
 import { AgGridReact } from "ag-grid-react";
 import type { GridReadyEvent } from "ag-grid-community";
-import { ModuleRegistry, AllCommunityModule } from "ag-grid-community";
+import {
+  ModuleRegistry,
+  AllCommunityModule,
+  themeQuartz,
+} from "ag-grid-community";
 import type { ComparisonRow } from "../types";
+import "../comparison.scss";
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
@@ -22,11 +27,7 @@ export default function StoreComparisonGrid({ rows, onGridReady }: Props) {
         width: 140,
         valueFormatter: (params: any) => `€${params.value.toFixed(2)}`,
       },
-      {
-        field: "totalTransactions",
-        headerName: "Transactions",
-        width: 130,
-      },
+      { field: "totalTransactions", headerName: "Transactions", width: 130 },
       {
         field: "avgBasket",
         headerName: "Avg basket",
@@ -58,15 +59,18 @@ export default function StoreComparisonGrid({ rows, onGridReady }: Props) {
   );
 
   return (
-    <div className="ag-theme-alpine" style={{ width: "100%", height: 420 }}>
+    <div style={{ width: "100%", height: "100%" }}>
       <AgGridReact<ComparisonRow>
         rowData={rows}
+        theme={themeQuartz}
         columnDefs={columnDefs}
+        domLayout="autoHeight"
         defaultColDef={{
           sortable: true,
           filter: true,
-          resizable: true,
-          minWidth: 100,
+          flex: 1,
+          // resizable: true,
+          // minWidth: 100,
         }}
         onGridReady={onGridReady}
       />

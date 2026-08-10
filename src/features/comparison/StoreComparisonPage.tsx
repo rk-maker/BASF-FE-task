@@ -25,8 +25,6 @@ import type { DailyRevenuePoint } from "@/features/overview/types";
 import type { AppDispatch, RootState } from "@/store";
 import { loadStores } from "@/features/overview/store/storesSlice";
 import StoreRevenueChart from "./components/StoreRevenueChart";
-import "ag-grid-community/styles/ag-grid.css";
-import "ag-grid-community/styles/ag-theme-alpine.css";
 import "./comparison.scss";
 import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
 import type { ComparisonRow } from "./types";
@@ -197,13 +195,18 @@ export default function StoreComparisonPage() {
   );
 
   const handleStoreChange = (value: string[]) => {
-    if (value.length > 5) return;
+    if (value.length > 5) {
+      setError("You can compare up to 5 stores at once.");
+      return;
+    }
+    setError(undefined);
     const nextParams = new URLSearchParams(searchParams);
     nextParams.set("stores", value.join(","));
     setSearchParams(nextParams);
   };
 
   const handleOpenStoreModal = () => {
+    setError(undefined);
     setIsStoreModalOpen(true);
   };
 
@@ -212,9 +215,24 @@ export default function StoreComparisonPage() {
   };
 
   const handleAddStoreFromModal = (storeId: string) => {
+    if (selectedStoreIds.length >= 5) {
+      setError("You can compare up to 5 stores at once.");
+      return;
+    }
     const uniqueIds = Array.from(new Set([...selectedStoreIds, storeId]));
     handleStoreChange(uniqueIds.slice(0, 5));
     setIsStoreModalOpen(false);
+  };
+
+  const handleRemoveStore = (storeId: string) => {
+    const nextParams = new URLSearchParams(searchParams);
+    const remainingIds = selectedStoreIds.filter((id) => id !== storeId);
+    if (remainingIds.length) {
+      nextParams.set("stores", remainingIds.join(","));
+    } else {
+      nextParams.delete("stores");
+    }
+    setSearchParams(nextParams);
   };
 
   const handleRangeChange = (range: null | [Dayjs, Dayjs]) => {
@@ -325,17 +343,12 @@ export default function StoreComparisonPage() {
                 selectedStoreIds.map((storeId) => {
                   const store = stores.find((item) => item.id === storeId);
                   return (
-                    // <div key={storeId} className="selected-store-card">
-                    //   {store?.name ?? storeId}
-                    //   {"  "}
-                    //   {store?.city ?? "North"}
-                    // </div>
-                    <div className="selected-store-card">
+                    <div key={storeId} className="selected-store-card">
                       {/* Close button */}
                       <button
                         type="button"
                         className="store-card-close"
-                        // onClick={() => onRemove(store?.storeId)}
+                        onClick={() => handleRemoveStore(storeId)}
                         aria-label={`Remove ${store?.name}`}
                       >
                         <CloseOutlined size={16} />
@@ -411,7 +424,11 @@ export default function StoreComparisonPage() {
               <List.Item
                 key={store.id}
                 className="store-modal-item"
-                onClick={() => !isSelected && handleAddStoreFromModal(store.id)}
+                onClick={() =>
+                  !isSelected && selectedStoreIds.length < 5
+                    ? handleAddStoreFromModal(store.id)
+                    : undefined
+                }
               >
                 <List.Item.Meta
                   title={store.name}
@@ -419,9 +436,13 @@ export default function StoreComparisonPage() {
                 />
                 <Button
                   type={isSelected ? "default" : "primary"}
-                  disabled={isSelected}
+                  disabled={isSelected || selectedStoreIds.length >= 5}
                 >
-                  {isSelected ? "Selected" : "Add"}
+                  {isSelected
+                    ? "Selected"
+                    : selectedStoreIds.length >= 5
+                      ? "Max 5"
+                      : "Add"}
                 </Button>
               </List.Item>
             );
@@ -465,11 +486,12 @@ export default function StoreComparisonPage() {
                 allowClear
               />
             }
-          ></Card>
-          <StoreComparisonGrid
-            rows={summaryRows}
-            onGridReady={(params) => setGridApi(params.api)}
-          />
+          >
+            <StoreComparisonGrid
+              rows={summaryRows}
+              onGridReady={(params) => setGridApi(params.api)}
+            />
+          </Card>
         </>
       )}
     </div>
