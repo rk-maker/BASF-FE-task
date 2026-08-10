@@ -1,9 +1,9 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
-import AppLayout from './AppLayout';
-import LoginPage from '@/pages/LoginPage';
-import { useSelector } from 'react-redux';
-import type { RootState } from '@/store';
-import OverviewPage from '@/pages/overview/OverviewPage';
+import { Routes, Route, Navigate } from "react-router-dom";
+import AppLayout from "./AppLayout";
+import LoginPage from "@/features/auth/LoginPage";
+import { useSelector } from "react-redux";
+import type { RootState } from "@/store";
+import OverviewPage from "@/features/overview/OverviewPage";
 
 function RequireAuth({ children }: { children: React.ReactElement }) {
   const user = useSelector((s: RootState) => s.auth.user);

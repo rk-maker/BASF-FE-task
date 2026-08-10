@@ -1,5 +1,6 @@
-import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import dayjs, { Dayjs } from 'dayjs';
+// This file contains the Redux slice for filters in the overview feature, including actions and reducers for selecting stores, changing date ranges, and updating search terms.
+import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
+import dayjs, { Dayjs } from "dayjs";
 
 interface FiltersState {
   selectedStoreId: string;
@@ -8,13 +9,13 @@ interface FiltersState {
 }
 
 const initialState: FiltersState = {
-  selectedStoreId: 's01',
-  dateRange: [dayjs().subtract(13, 'day'), dayjs()],
-  search: '',
+  selectedStoreId: "s01",
+  dateRange: [dayjs().subtract(13, "day"), dayjs()],
+  search: "",
 };
 
 const filtersSlice = createSlice({
-  name: 'filters',
+  name: "filters",
   initialState,
   reducers: {
     storeSelected(state, action: PayloadAction<string>) {
@@ -29,5 +30,6 @@ const filtersSlice = createSlice({
   },
 });
 
-export const { storeSelected, dateRangeChanged, searchChanged } = filtersSlice.actions;
+export const { storeSelected, dateRangeChanged, searchChanged } =
+  filtersSlice.actions;
 export default filtersSlice.reducer;
