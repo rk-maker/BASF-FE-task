@@ -4,7 +4,6 @@ import {
   Button,
   Card,
   DatePicker,
-  Input,
   List,
   Modal,
   Row,
@@ -16,6 +15,7 @@ import {
   PlusOutlined,
   EnvironmentOutlined,
   CloseOutlined,
+  DownloadOutlined,
 } from "@ant-design/icons";
 import { useSearchParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
@@ -85,7 +85,6 @@ export default function StoreComparisonPage() {
     DailyRevenuePoint[]
   >([]);
   const [gridApi, setGridApi] = useState<any>(null);
-  const [quickFilter, setQuickFilter] = useState("");
   const [isStoreModalOpen, setIsStoreModalOpen] = useState(false);
 
   const queryStoreIds = useMemo(() => {
@@ -169,7 +168,10 @@ export default function StoreComparisonPage() {
     () => buildDateRange(selectedRange[0], selectedRange[1]),
     [selectedRange],
   );
-
+  const downloadCsv = () => {
+    if (!gridApi) return;
+    gridApi.exportDataAsCsv({ fileName: "store-comparison.csv" });
+  };
   const revenueMap = useMemo(() => {
     const map = new Map<string, DailyRevenuePoint>();
     revenueData.forEach((item) =>
@@ -235,17 +237,15 @@ export default function StoreComparisonPage() {
     setSearchParams(nextParams);
   };
 
-  const handleRangeChange = (range: null | [Dayjs, Dayjs]) => {
-    if (!range || !range[0] || !range[1]) return;
+  const handleRangeChange = (range: [Dayjs | null, Dayjs | null] | null) => {
+    if (!range?.[0] || !range?.[1]) return;
+
     const nextParams = new URLSearchParams(searchParams);
+
     nextParams.set("from", range[0].format("YYYY-MM-DD"));
     nextParams.set("to", range[1].format("YYYY-MM-DD"));
-    setSearchParams(nextParams);
-  };
 
-  const handleQuickFilter = (value: string) => {
-    setQuickFilter(value);
-    if (gridApi) gridApi.setQuickFilter(value);
+    setSearchParams(nextParams);
   };
   const previousRevenueMap = useMemo(() => {
     const map = new Map<string, DailyRevenuePoint>();
@@ -375,7 +375,7 @@ export default function StoreComparisonPage() {
                         <span>Opened at</span>
 
                         <strong>
-                          {new Date(store?.openedAt).toLocaleDateString()}
+                          {new Date(store?.openedAt!).toLocaleDateString()}{" "}
                         </strong>
                       </div>
                     </div>
@@ -478,13 +478,19 @@ export default function StoreComparisonPage() {
             title="Store summary"
             className="summary-card"
             extra={
-              <Input
-                placeholder="Filter table"
-                value={quickFilter}
-                onChange={(e) => handleQuickFilter(e.target.value)}
-                style={{ width: 220 }}
-                allowClear
-              />
+              <Col
+                className="download-button-col"
+                style={{ justifyContent: "flex-end" }}
+              >
+                <Button
+                  type="primary"
+                  icon={<DownloadOutlined />}
+                  onClick={downloadCsv}
+                  disabled={!gridApi || !isReady}
+                >
+                  Download CSV
+                </Button>
+              </Col>
             }
           >
             <StoreComparisonGrid

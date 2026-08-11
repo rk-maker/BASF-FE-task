@@ -185,9 +185,9 @@
   }
 
   .store-modal-list {
-    max-height: 420px;
+    max-height: 440px;
     overflow-y: auto;
-    padding-right: 8px;
+    padding: 16px 16px 8px;
   }
 
   .store-modal-item {
@@ -213,6 +213,25 @@
   .chart-card,
   .summary-card {
     margin-bottom: 18px;
+  }
+
+  .summary-card-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+  }
+
+  .store-card-close:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .store-card-close:disabled:hover {
+    background: transparent;
+    color: #7b8ab8;
   }
 
   .empty-state,
