@@ -104,6 +104,10 @@
       background-color 0.2s ease,
       color 0.2s ease;
   }
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
 
   .store-card-close:hover {
     background: #2f54eb;

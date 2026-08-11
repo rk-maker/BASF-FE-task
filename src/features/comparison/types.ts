@@ -1,4 +1,4 @@
-import type { Store } from "@/features/overview/types";
+import type { Store } from "@/types";
 
 export interface ComparisonRow {
   storeId: string;

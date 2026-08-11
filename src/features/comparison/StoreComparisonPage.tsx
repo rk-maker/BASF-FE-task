@@ -4,181 +4,74 @@ import {
   Button,
   Card,
   DatePicker,
-  List,
-  Modal,
   Row,
   Col,
   Spin,
   Typography,
 } from "antd";
-import {
-  PlusOutlined,
-  EnvironmentOutlined,
-  CloseOutlined,
-  DownloadOutlined,
-} from "@ant-design/icons";
-import { useSearchParams } from "react-router-dom";
+import { PlusOutlined, DownloadOutlined } from "@ant-design/icons";
 import { useDispatch, useSelector } from "react-redux";
-import dayjs, { Dayjs } from "dayjs";
-import { fetchDailyRevenue } from "@/features/overview/api";
-import type { DailyRevenuePoint } from "@/features/overview/types";
 import type { AppDispatch, RootState } from "@/store";
 import { loadStores } from "@/features/overview/store/storesSlice";
 import StoreRevenueChart from "./components/StoreRevenueChart";
-import "./comparison.scss";
-import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
-import type { ComparisonRow } from "./types";
 import StoreComparisonGrid from "./components/StoreComparisonGrid";
-
-dayjs.extend(isSameOrBefore);
+import SelectedStoreCard from "./components/SelectedStoreCard";
+import AddStoreModal from "./components/AddStoreModal";
+import {
+  RANGE_PRESETS,
+  buildDateRange,
+  getPreviousRange,
+} from "./utils/dateRange";
+import {
+  buildComparisonRows,
+  indexByStoreAndDate,
+} from "./utils/buildComparisonRows";
+import { useComparisonParams } from "./hooks/useComparisonParams";
+import { useComparisonData } from "./hooks/useComparisonData";
+import "./comparison.scss";
 
 const { RangePicker } = DatePicker;
-const PRESETS: Array<{ label: string; value: [Dayjs, Dayjs] }> = [
-  { label: "Last 7 days", value: [dayjs().subtract(6, "day"), dayjs()] },
-  { label: "Last 30 days", value: [dayjs().subtract(29, "day"), dayjs()] },
-  { label: "Last 90 days", value: [dayjs().subtract(89, "day"), dayjs()] },
-];
-
-const DEFAULT_RANGE: [Dayjs, Dayjs] = [dayjs().subtract(29, "day"), dayjs()];
-
-function normalizeRange(
-  from: string | null,
-  to: string | null,
-): [Dayjs, Dayjs] {
-  const parsedFrom = from ? dayjs(from) : null;
-  const parsedTo = to ? dayjs(to) : null;
-
-  if (
-    parsedFrom?.isValid() &&
-    parsedTo?.isValid() &&
-    parsedFrom.isSameOrBefore(parsedTo)
-  ) {
-    return [parsedFrom, parsedTo];
-  }
-
-  return DEFAULT_RANGE;
-}
-
-function buildDateRange(from: Dayjs, to: Dayjs) {
-  const dates: string[] = [];
-  let current = from.startOf("day");
-  while (current.isSameOrBefore(to, "day")) {
-    dates.push(current.format("YYYY-MM-DD"));
-    current = current.add(1, "day");
-  }
-  return dates;
-}
-
-function getPreviousRange([from, to]: [Dayjs, Dayjs]): [Dayjs, Dayjs] {
-  const days = to.diff(from, "day") + 1;
-  return [from.subtract(days, "day"), from.subtract(1, "day")];
-}
+const MAX_STORES = 5;
+const MIN_STORES = 2;
 
 export default function StoreComparisonPage() {
-  const [searchParams, setSearchParams] = useSearchParams();
   const dispatch = useDispatch<AppDispatch>();
   const stores = useSelector((s: RootState) => s.stores.items);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | undefined>();
-  const [revenueData, setRevenueData] = useState<DailyRevenuePoint[]>([]);
-  const [previousRevenueData, setPreviousRevenueData] = useState<
-    DailyRevenuePoint[]
-  >([]);
   const [gridApi, setGridApi] = useState<any>(null);
   const [isStoreModalOpen, setIsStoreModalOpen] = useState(false);
+  const [selectionError, setSelectionError] = useState<string | undefined>();
 
-  const queryStoreIds = useMemo(() => {
-    const ids = searchParams.get("stores")?.split(",").filter(Boolean) ?? [];
-    return Array.from(new Set(ids));
-  }, [searchParams]);
-  const queryFrom = searchParams.get("from");
-  const queryTo = searchParams.get("to");
-  const selectedRange = useMemo(
-    () => normalizeRange(queryFrom, queryTo),
-    [queryFrom, queryTo],
-  );
-  const selectedStoreIds = useMemo(() => {
-    if (!stores.length) return queryStoreIds.slice(0, 5);
-    const validStoreIds = queryStoreIds.filter((id) =>
-      stores.some((store) => store.id === id),
-    );
-    if (validStoreIds.length >= 2) {
-      return validStoreIds.slice(0, 5);
-    }
-    return stores.slice(0, 2).map((store) => store.id);
-  }, [queryStoreIds, stores]);
+  const {
+    selectedStoreIds,
+    selectedRange,
+    validSelection,
+    setStoreIds,
+    setRange,
+  } = useComparisonParams(stores);
 
-  const validSelection =
-    selectedStoreIds.length >= 2 && selectedStoreIds.length <= 5;
+  const { revenueData, previousRevenueData, loading, error } =
+    useComparisonData(selectedStoreIds, selectedRange, validSelection);
 
   useEffect(() => {
     dispatch(loadStores());
   }, [dispatch]);
 
-  useEffect(() => {
-    if (!stores.length) return;
-
-    const fixedStoreIds =
-      selectedStoreIds.length >= 2
-        ? selectedStoreIds
-        : stores.slice(0, 2).map((store) => store.id);
-    const from = selectedRange[0].format("YYYY-MM-DD");
-    const to = selectedRange[1].format("YYYY-MM-DD");
-    const nextParams = new URLSearchParams(searchParams);
-    nextParams.set("stores", fixedStoreIds.join(","));
-    nextParams.set("from", from);
-    nextParams.set("to", to);
-
-    if (nextParams.toString() !== searchParams.toString()) {
-      setSearchParams(nextParams);
-    }
-  }, [stores, selectedRange, selectedStoreIds, searchParams, setSearchParams]);
-
-  useEffect(() => {
-    if (!validSelection) return;
-
-    setLoading(true);
-    setError(undefined);
-    const from = selectedRange[0].format("YYYY-MM-DD");
-    const to = selectedRange[1].format("YYYY-MM-DD");
-    const [prevFrom, prevTo] = getPreviousRange(selectedRange);
-
-    Promise.all([
-      fetchDailyRevenue({ storeIds: selectedStoreIds, from, to }),
-      fetchDailyRevenue({
-        storeIds: selectedStoreIds,
-        from: prevFrom.format("YYYY-MM-DD"),
-        to: prevTo.format("YYYY-MM-DD"),
-      }),
-    ])
-      .then(([current, previous]) => {
-        setRevenueData(current as DailyRevenuePoint[]);
-        setPreviousRevenueData(previous as DailyRevenuePoint[]);
-      })
-      .catch((err) => {
-        setError(
-          err?.message ||
-            "Unable to load store comparison data. Please try again or refresh the page.",
-        );
-      })
-      .finally(() => setLoading(false));
-  }, [selectedStoreIds, selectedRange, validSelection]);
-
   const dates = useMemo(
-    () => buildDateRange(selectedRange[0], selectedRange[1]),
+    () => buildDateRange(...selectedRange),
     [selectedRange],
   );
-  const downloadCsv = () => {
-    if (!gridApi) return;
-    gridApi.exportDataAsCsv({ fileName: "store-comparison.csv" });
-  };
-  const revenueMap = useMemo(() => {
-    const map = new Map<string, DailyRevenuePoint>();
-    revenueData.forEach((item) =>
-      map.set(`${item.storeId}|${item.date}`, item),
-    );
-    return map;
-  }, [revenueData]);
+  const previousRange = useMemo(
+    () => getPreviousRange(selectedRange),
+    [selectedRange],
+  );
+  const previousDates = useMemo(
+    () => buildDateRange(...previousRange),
+    [previousRange],
+  );
+  const revenueMap = useMemo(
+    () => indexByStoreAndDate(revenueData),
+    [revenueData],
+  );
 
   const chartSeries = useMemo(
     () =>
@@ -196,121 +89,54 @@ export default function StoreComparisonPage() {
     [dates, revenueMap, selectedStoreIds, stores],
   );
 
-  const handleStoreChange = (value: string[]) => {
-    if (value.length > 5) {
-      setError("You can compare up to 5 stores at once.");
+  const summaryRows = useMemo(
+    () =>
+      buildComparisonRows({
+        storeIds: selectedStoreIds,
+        stores,
+        dates,
+        revenueData,
+        previousDates,
+        previousRevenueData,
+      }),
+    [
+      selectedStoreIds,
+      stores,
+      dates,
+      revenueData,
+      previousDates,
+      previousRevenueData,
+    ],
+  );
+
+  // Resolved Store objects for the selected ids, in selection order, with
+  // any not-yet-loaded ids dropped (rather than rendering a card with
+  // undefined fields).
+  const selectedStores = selectedStoreIds
+    .map((id) => stores.find((store) => store.id === id))
+    .filter((store): store is NonNullable<typeof store> => Boolean(store));
+  const canRemoveStore = selectedStoreIds.length > MIN_STORES;
+  const handleAddStore = (storeId: string) => {
+    if (selectedStoreIds.length >= MAX_STORES) {
+      setSelectionError(`You can compare up to ${MAX_STORES} stores at once.`);
       return;
     }
-    setError(undefined);
-    const nextParams = new URLSearchParams(searchParams);
-    nextParams.set("stores", value.join(","));
-    setSearchParams(nextParams);
-  };
-
-  const handleOpenStoreModal = () => {
-    setError(undefined);
-    setIsStoreModalOpen(true);
-  };
-
-  const handleCloseStoreModal = () => {
-    setIsStoreModalOpen(false);
-  };
-
-  const handleAddStoreFromModal = (storeId: string) => {
-    if (selectedStoreIds.length >= 5) {
-      setError("You can compare up to 5 stores at once.");
-      return;
-    }
-    const uniqueIds = Array.from(new Set([...selectedStoreIds, storeId]));
-    handleStoreChange(uniqueIds.slice(0, 5));
+    setSelectionError(undefined);
+    setStoreIds(Array.from(new Set([...selectedStoreIds, storeId])));
     setIsStoreModalOpen(false);
   };
 
   const handleRemoveStore = (storeId: string) => {
-    const nextParams = new URLSearchParams(searchParams);
-    const remainingIds = selectedStoreIds.filter((id) => id !== storeId);
-    if (remainingIds.length) {
-      nextParams.set("stores", remainingIds.join(","));
-    } else {
-      nextParams.delete("stores");
-    }
-    setSearchParams(nextParams);
+    if (selectedStoreIds.length <= MIN_STORES) return;
+    setStoreIds(selectedStoreIds.filter((id) => id !== storeId));
   };
 
-  const handleRangeChange = (range: [Dayjs | null, Dayjs | null] | null) => {
-    if (!range?.[0] || !range?.[1]) return;
-
-    const nextParams = new URLSearchParams(searchParams);
-
-    nextParams.set("from", range[0].format("YYYY-MM-DD"));
-    nextParams.set("to", range[1].format("YYYY-MM-DD"));
-
-    setSearchParams(nextParams);
+  const downloadCsv = () => {
+    gridApi?.exportDataAsCsv({ fileName: "store-comparison.csv" });
   };
-  const previousRevenueMap = useMemo(() => {
-    const map = new Map<string, DailyRevenuePoint>();
-    previousRevenueData.forEach((item) =>
-      map.set(`${item.storeId}|${item.date}`, item),
-    );
-    return map;
-  }, [previousRevenueData]);
 
-  const previousRange = useMemo(
-    () => getPreviousRange(selectedRange),
-    [selectedRange],
-  );
-  const previousDates = useMemo(
-    () => buildDateRange(previousRange[0], previousRange[1]),
-    [previousRange],
-  );
-
-  const summaryRows = useMemo<ComparisonRow[]>(
-    () =>
-      selectedStoreIds.map((storeId) => {
-        const store = stores.find((item) => item.id === storeId);
-        const currentPoints = dates.map((date) =>
-          revenueMap.get(`${storeId}|${date}`),
-        );
-        const previousPoints = previousDates.map((date) =>
-          previousRevenueMap.get(`${storeId}|${date}`),
-        );
-
-        const totalRevenue = currentPoints.reduce(
-          (sum, point) => sum + (point?.revenue ?? 0),
-          0,
-        );
-        const totalTransactions = currentPoints.reduce(
-          (sum, point) => sum + (point?.transactions ?? 0),
-          0,
-        );
-        const previousRevenue = previousPoints.reduce(
-          (sum, point) => sum + (point?.revenue ?? 0),
-          0,
-        );
-        const avgBasket = totalTransactions
-          ? Math.round((totalRevenue / totalTransactions) * 100) / 100
-          : 0;
-        const changePct =
-          previousRevenue === 0
-            ? totalRevenue === 0
-              ? 0
-              : undefined
-            : ((totalRevenue - previousRevenue) / previousRevenue) * 100;
-
-        return {
-          storeId,
-          storeName: store?.name ?? storeId,
-          region: store?.region ?? "North",
-          totalRevenue: Math.round(totalRevenue * 100) / 100,
-          totalTransactions,
-          avgBasket,
-          changePct,
-          previousRevenue: Math.round(previousRevenue * 100) / 100,
-        };
-      }),
-    [dates, previousRevenueMap, revenueMap, selectedStoreIds, stores],
-  );
   const isReady = validSelection && !loading && !error;
+  const displayError = selectionError ?? error;
 
   return (
     <div className="comparison">
@@ -322,7 +148,10 @@ export default function StoreComparisonPage() {
             icon={<PlusOutlined />}
             size="large"
             className="add-store-button"
-            onClick={handleOpenStoreModal}
+            onClick={() => {
+              setSelectionError(undefined);
+              setIsStoreModalOpen(true);
+            }}
           />
 
           <div className="heading-block">
@@ -332,55 +161,22 @@ export default function StoreComparisonPage() {
                 <RangePicker
                   value={selectedRange}
                   allowClear={false}
-                  presets={PRESETS}
-                  onChange={handleRangeChange}
+                  presets={RANGE_PRESETS}
+                  onChange={setRange}
                   style={{ minWidth: 320 }}
                 />
               </div>
             </div>
             <div className="selected-stores-row">
-              {selectedStoreIds.length ? (
-                selectedStoreIds.map((storeId) => {
-                  const store = stores.find((item) => item.id === storeId);
-                  return (
-                    <div key={storeId} className="selected-store-card">
-                      {/* Close button */}
-                      <button
-                        type="button"
-                        className="store-card-close"
-                        onClick={() => handleRemoveStore(storeId)}
-                        aria-label={`Remove ${store?.name}`}
-                      >
-                        <CloseOutlined size={16} />
-                      </button>
-
-                      {/* Store name */}
-                      <h3 className="store-card-name">{store?.name}</h3>
-
-                      {/* Location */}
-                      <div className="store-card-location">
-                        <EnvironmentOutlined size={16} />
-
-                        <div>
-                          <div className="store-card-city">{store?.city}</div>
-
-                          <div className="store-card-region">
-                            {store?.region} Region
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Opened at */}
-                      <div className="store-card-opened">
-                        <span>Opened at</span>
-
-                        <strong>
-                          {new Date(store?.openedAt!).toLocaleDateString()}{" "}
-                        </strong>
-                      </div>
-                    </div>
-                  );
-                })
+              {selectedStores.length ? (
+                selectedStores.map((store) => (
+                  <SelectedStoreCard
+                    key={store.id}
+                    store={store}
+                    onRemove={handleRemoveStore}
+                    canRemove={canRemoveStore}
+                  />
+                ))
               ) : (
                 <Typography.Text type="secondary">
                   No stores selected yet. Tap + to add stores.
@@ -391,11 +187,11 @@ export default function StoreComparisonPage() {
         </div>
       </div>
 
-      {error && (
+      {displayError && (
         <Alert
           type="error"
           showIcon
-          message={error}
+          message={displayError}
           style={{ marginBottom: 16 }}
         />
       )}
@@ -408,47 +204,13 @@ export default function StoreComparisonPage() {
         </Col>
       </Row>
 
-      <Modal
-        title="Add a store"
+      <AddStoreModal
         open={isStoreModalOpen}
-        onCancel={handleCloseStoreModal}
-        footer={null}
-        width={520}
-      >
-        <List
-          className="store-modal-list"
-          dataSource={stores}
-          renderItem={(store) => {
-            const isSelected = selectedStoreIds.includes(store.id);
-            return (
-              <List.Item
-                key={store.id}
-                className="store-modal-item"
-                onClick={() =>
-                  !isSelected && selectedStoreIds.length < 5
-                    ? handleAddStoreFromModal(store.id)
-                    : undefined
-                }
-              >
-                <List.Item.Meta
-                  title={store.name}
-                  description={`${store.city} • ${store.region}`}
-                />
-                <Button
-                  type={isSelected ? "default" : "primary"}
-                  disabled={isSelected || selectedStoreIds.length >= 5}
-                >
-                  {isSelected
-                    ? "Selected"
-                    : selectedStoreIds.length >= 5
-                      ? "Max 5"
-                      : "Add"}
-                </Button>
-              </List.Item>
-            );
-          }}
-        />
-      </Modal>
+        stores={stores}
+        selectedStoreIds={selectedStoreIds}
+        onAdd={handleAddStore}
+        onClose={() => setIsStoreModalOpen(false)}
+      />
 
       {!validSelection ? (
         <Card className="empty-state">

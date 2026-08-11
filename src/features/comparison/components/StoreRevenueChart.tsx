@@ -1,7 +1,5 @@
 import { useEffect, useRef } from "react";
 import * as d3 from "d3";
-import type { DailyRevenuePoint, Store } from "@/features/overview/types";
-
 type SeriesPoint = { date: string; revenue: number };
 
 type StoreSeries = {

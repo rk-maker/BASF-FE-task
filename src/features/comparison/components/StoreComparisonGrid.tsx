@@ -1,6 +1,5 @@
 import { useMemo } from "react";
 import type { GridReadyEvent, ColDef } from "ag-grid-community";
-import { themeQuartz } from "ag-grid-community";
 import BaseGrid from "@/components/grid";
 import type { ComparisonRow } from "../types";
 import "../comparison.scss";
