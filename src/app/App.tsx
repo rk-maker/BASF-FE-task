@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import AppLayout from "./AppLayout";
 import LoginPage from "@/features/auth/LoginPage";
+import StoreComparisonPage from "@/features/comparison/StoreComparisonPage";
 import { useSelector } from "react-redux";
 import type { RootState } from "@/store";
 import OverviewPage from "@/features/overview/OverviewPage";
@@ -25,6 +26,7 @@ export default function App() {
       >
         <Route index element={<Navigate to="/overview" replace />} />
         <Route path="overview" element={<OverviewPage />} />
+        <Route path="comparison" element={<StoreComparisonPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

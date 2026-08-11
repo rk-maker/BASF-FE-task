@@ -12,13 +12,11 @@ import {
   loadTransactions,
   filteredUpdated,
 } from "@/features/overview/store/transactionsSlice";
-import { fetchStores } from "@/features/overview/api";
+import { loadStores } from "@/features/overview/store/storesSlice";
 import { groupByDayAndMethod, computeSummary } from "@/utils/revenue";
 import RevenueChart from "./components/RevenueChart";
 import TransactionsGrid from "./components/TransactionsGrid";
 import LatestTransactions from "./components/LatestTransactions";
-import type { Store } from "./types/index";
-import { useState } from "react";
 import "@/styles/overview.scss";
 
 const { RangePicker } = DatePicker;
@@ -31,8 +29,7 @@ const PRESETS: Array<{ label: string; value: [Dayjs, Dayjs] }> = [
 
 export default function OverviewPage() {
   const dispatch = useDispatch<AppDispatch>();
-  const [stores, setStores] = useState<Store[]>([]);
-
+  const stores = useSelector((s: RootState) => s.stores.items);
   const { selectedStoreId, dateRange, search } = useSelector(
     (s: RootState) => s.filters,
   );
@@ -48,19 +45,8 @@ export default function OverviewPage() {
   const to = dateRange[1].format("YYYY-MM-DD");
 
   useEffect(() => {
-    let mounted = true;
-    fetchStores()
-      .then((stores) => {
-        if (mounted) setStores(stores as Store[]);
-      })
-      .catch(() => {
-        if (mounted) setStores([]);
-      });
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
+    dispatch(loadStores());
+  }, [dispatch]);
 
   useEffect(() => {
     dispatch(loadTransactions({ storeId: selectedStoreId, from, to }));

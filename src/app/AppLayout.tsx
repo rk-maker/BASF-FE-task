@@ -24,6 +24,10 @@ export default function AppLayout() {
           style={{ flex: 1, minWidth: 0 }}
           items={[
             { key: "/overview", label: <Link to="/overview">Overview</Link> },
+            {
+              key: "/comparison",
+              label: <Link to="/comparison">Comparison</Link>,
+            },
           ]}
         />
         <Dropdown

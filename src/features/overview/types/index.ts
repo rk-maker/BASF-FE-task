@@ -1,11 +1,4 @@
-// This file contains the types for the overview feature, including stores, transactions, and daily revenue points.
-export interface Store {
-  id: string;
-  name: string;
-  city: string;
-  region: "North" | "South" | "East" | "West";
-  openedAt: string; // ISO date
-}
+// This file contains the types for the overview feature, including transactions, and daily revenue points.
 
 export interface Transaction {
   id: string;
@@ -15,11 +8,4 @@ export interface Transaction {
   amount: number; // EUR
   items: number;
   paymentMethod: "card" | "cash" | "mobile";
-}
-
-export interface DailyRevenuePoint {
-  date: string; // YYYY-MM-DD
-  storeId: string;
-  revenue: number;
-  transactions: number;
 }
